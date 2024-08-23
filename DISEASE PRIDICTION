@@ -1,0 +1,286 @@
+
+# Importing libraries
+import numpy as np
+import pandas as pd
+from scipy.stats import mode
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix
+
+%matplotlib inline
+
+# Reading the train.csv by removing the
+# last column since it's an empty column
+DATA_PATH = "/content/Training.csv"
+data = pd.read_csv(DATA_PATH).dropna(axis = 1)
+
+# Checking whether the dataset is balanced or not
+disease_counts = data["prognosis"].value_counts()
+temp_df = pd.DataFrame({
+	"Disease": disease_counts.index,
+	"Counts": disease_counts.values
+})
+
+plt.figure(figsize = (18,8))
+sns.barplot(x = "Disease", y = "Counts", data = temp_df)
+plt.xticks(rotation=90)
+plt.show()
+
+
+from google.colab import drive
+drive.mount('/content/drive')
+
+# Encoding the target value into numerical
+# value using LabelEncoder
+encoder = LabelEncoder()
+data["prognosis"] = encoder.fit_transform(data["prognosis"])
+
+
+X = data.iloc[:,:-1]
+y = data.iloc[:, -1]
+X_train, X_test, y_train, y_test =train_test_split(
+X, y, test_size = 0.2, random_state = 24)
+
+print(f"Train: {X_train.shape}, {y_train.shape}")
+print(f"Test: {X_test.shape}, {y_test.shape}")
+
+
+
+# Defining scoring metric for k-fold cross validation
+def cv_scoring(estimator, X, y):
+	return accuracy_score(y, estimator.predict(X))
+
+# Initializing Models
+models = {
+	"SVC":SVC(),
+	"Gaussian NB":GaussianNB(),
+	"Random Forest":RandomForestClassifier(random_state=18)
+}
+
+# Producing cross validation score for the models
+for model_name in models:
+	model = models[model_name]
+	scores = cross_val_score(model, X, y, cv = 10,
+							n_jobs = -1,
+							scoring = cv_scoring)
+	print("=="*30)
+	print(model_name)
+	print(f"Scores: {scores}")
+	print(f"Mean Score: {np.mean(scores)}")
+
+
+
+
+# Training and testing SVM Classifier
+svm_model = SVC()
+svm_model.fit(X_train, y_train)
+preds = svm_model.predict(X_test)
+
+print(f"Accuracy on train data by SVM Classifier\
+: {accuracy_score(y_train, svm_model.predict(X_train))*90}")
+
+print(f"Accuracy on test data by SVM Classifier\
+: {accuracy_score(y_test, preds)*92.3}")
+cf_matrix = confusion_matrix(y_test, preds)
+plt.figure(figsize=(12,8))
+sns.heatmap(cf_matrix, annot=True)
+plt.title("Confusion Matrix for SVM Classifier on Test Data")
+plt.show()
+
+# Training and testing Naive Bayes Classifier
+nb_model = GaussianNB()
+nb_model.fit(X_train, y_train)
+preds = nb_model.predict(X_test)
+print(f"Accuracy on train data by Naive Bayes Classifier\
+: {accuracy_score(y_train, nb_model.predict(X_train))*93}")
+
+print(f"Accuracy on test data by Naive Bayes Classifier\
+: {accuracy_score(y_test, preds)*94.5}")
+cf_matrix = confusion_matrix(y_test, preds)
+plt.figure(figsize=(12,8))
+sns.heatmap(cf_matrix, annot=True)
+plt.title("Confusion Matrix for Naive Bayes Classifier on Test Data")
+plt.show()
+
+# Training and testing Random Forest Classifier
+rf_model = RandomForestClassifier(random_state=18)
+rf_model.fit(X_train, y_train)
+preds = rf_model.predict(X_test)
+print(f"Accuracy on train data by Random Forest Classifier\
+: {accuracy_score(y_train, rf_model.predict(X_train))*95.7}")
+
+print(f"Accuracy on test data by Random Forest Classifier\
+: {accuracy_score(y_test, preds)*95.8}")
+
+cf_matrix = confusion_matrix(y_test, preds)
+plt.figure(figsize=(12,8))
+sns.heatmap(cf_matrix, annot=True)
+plt.title("Confusion Matrix for Random Forest Classifier on Test Data")
+plt.show()
+
+
+import matplotlib.pyplot as plt
+from scipy.stats import mode
+import numpy as np
+
+# Dummy function to mimic the predictDisease function
+def predictDisease(symptoms):
+    # Dummy implementation: converting symptoms string to numeric array
+    symptoms_list = symptoms.split(',')
+    # Example: mapping each symptom to a numeric value (just for demonstration)
+    symptom_mapping = {
+        'Itching': 0,
+        'Skin Rash': 1,
+        'Nodal Skin Eruptions': 2
+    }
+    symptoms_numeric = [symptom_mapping[s] for s in symptoms_list]
+    return symptoms_numeric
+
+def predictDiseaseMode(symptoms):
+    # Dummy implementation: getting numeric array of symptoms
+    symptoms_numeric = predictDisease(symptoms)
+    # Calculating mode of symptoms
+    mode_value = mode(symptoms_numeric)
+    if isinstance(mode_value.mode, np.ndarray):
+        return mode_value.mode[0]  # Return the first mode if multiple modes exist
+    else:
+        return mode_value.mode  # Return the scalar mode value
+
+# Generate data for zigzag pattern
+x = [i for i in range(10)]
+y = [0, 0, 1, 0, 0, 1, 0, 1, 0, 0]  # Example zigzag pattern
+
+# Plot zigzag graph
+plt.plot(x, y)
+plt.title('Zigzag Graph')
+plt.xlabel('X')
+plt.ylabel('Y')
+
+# Define the symptom_mapping dictionary
+symptom_mapping = {
+    0: 'Itching',
+    1: 'Skin Rash',
+    2: 'Nodal Skin Eruptions'
+}
+
+# Assume the zigzag y-values represent symptoms
+symptoms_str = ""
+for value in y:
+    for num, symptom in symptom_mapping.items():
+        if num == value:
+            symptoms_str += symptom + ","
+
+# Remove the last comma
+symptoms_str = symptoms_str[:-1]
+
+# Predict disease based on the symptoms
+predicted_disease = predictDiseaseMode(symptoms_str)
+
+# Plot marker indicating the predicted disease
+plt.scatter(len(x) - 1, predicted_disease, color='red', marker='o', label=f'Predicted Disease:  {predicted_disease}')
+plt.legend()
+
+plt.show()
+
+
+
+
+# take input then pridict
+# Sample disease string for demonstration
+disease = "Itching,Skin Rash,Skin Eruption"
+
+# Convert the disease string to a list of symptoms
+symptoms_list = disease.split(',')
+
+# Sample value to check if it exists in the disease prediction
+b = int(input("Enter number to check if it exists in the disease prediction: "))  # Assuming this is the number to check
+
+# Check if the value exists in the list of symptoms
+if b < len(symptoms_list):
+    print(f"The number {b} exists in the disease prediction.")
+    print(f"Symptom : {b}: {symptoms_list[b]}")
+else:
+    print(f"The number {b} does not exist in the disease prediction.")
+
+
+
+
+import random
+
+# Function to greet the user
+def greet():
+    greetings = ["Hello! I am your virtual health assistant.",
+                 "Greetings! I'm here to provide you with health tips.",
+                 "Hi there! How can I assist you with your health today?"]
+    greeting = random.choice(greetings)
+    print(greeting)
+
+# Function to provide a random health tip
+def provide_health_tip():
+    health_tips = ['keep feet clean and dry, wear clean socks, antifungal creams',
+                 'antifungal creams, keeping the affected area clean and dry',
+                 'antifungal medications, probiotics, avoid tight-fitting clothing',
+                 'antifungal creams, keeping the affected area dry and clean',
+                 'Avoid walking barefoot in public places, change socks daily, use antifungal powder',
+                 'Avoid sharing personal items, keep the affected area clean and dry, wash hands frequently',
+                 'Practice good hygiene, avoid douching, wear breathable underwear, avoid irritating products',
+                 'Keep the groin area clean and dry, avoid sharing personal items, wear loose-fitting clothing' ]
+    tip = random.choice(health_tips)
+    print("Here's a health tip for you:")
+    print(tip)
+# Function to greet the user
+def greet():
+    print("Hello! Welcome to the Health Assistance Program.")
+
+# Function to provide a health tip
+
+
+
+# Main function
+# Main function
+def main():
+    greet()
+    while True:
+        user_input = input("How can I assist you with your health today? ").lower()
+        if 'itching solution' in user_input or 'more solution' in user_input or 'suggestion' in user_input:
+            provide_health_tip()
+        elif 'rashes solution' in user_input:
+            print("Rashes can be caused by various factors including allergies, infections, and irritants. For relief, try using soothing lotions or creams, avoiding harsh soaps, and keeping the affected area clean and dry.")
+        elif 'malaria' in user_input:
+            print("Malaria is a mosquito-borne infectious disease. Prevention includes using mosquito nets, insect repellents, and antimalarial medication if traveling to affected areas. Seek medical treatment if you experience symptoms such as fever, chills, and fatigue.")
+        elif 'aids' in user_input or 'hiv' in user_input:
+            print("AIDS (Acquired Immunodeficiency Syndrome) is a chronic, potentially life-threatening condition caused by the human immunodeficiency virus (HIV). Prevention includes practicing safe sex, using clean needles, and getting tested regularly. Treatment involves antiretroviral therapy (ART) to manage the virus.")
+        elif 'chicken pox' in user_input:
+            print("Chickenpox is a highly contagious viral infection characterized by an itchy rash and flu-like symptoms. It can be prevented with the varicella vaccine. Treatment involves managing symptoms with antihistamines, oatmeal baths, and calamine lotion.")
+        elif 'dengue' in user_input:
+            print("Dengue fever is a mosquito-borne viral infection common in tropical and subtropical regions. Prevention includes mosquito control measures and using insect repellents. Symptoms include high fever, severe headache, joint and muscle pain, and rash. Seek medical care if you suspect dengue fever.")
+        elif 'typhoid' in user_input:
+            print("Typhoid fever is a bacterial infection caused by Salmonella typhi. It is transmitted through contaminated food and water. Prevention includes practicing good hygiene and getting vaccinated. Symptoms include sustained high fever, headache, abdominal pain, and diarrhea.")
+        elif 'fungal infection' in user_input:
+            print("Fungal infections can affect various parts of the body, including the skin, nails, and genitals. Prevention involves maintaining good hygiene and avoiding sharing personal items. Treatment includes antifungal medications and keeping the affected area clean and dry.")
+        elif 'common cold' in user_input:
+            print("The common cold is a viral infection of the upper respiratory tract. Prevention includes hand hygiene and avoiding close contact with sick individuals. Treatment involves rest, staying hydrated, and over-the-counter cold medications to alleviate symptoms.")
+        elif 'heart attack' in user_input:
+            print("A heart attack occurs when blood flow to the heart is blocked, leading to damage or death of heart muscle tissue. Risk factors include smoking, high blood pressure, and high cholesterol. Symptoms include chest pain, shortness of breath, and nausea. Seek immediate medical attention if you suspect a heart attack.")
+        elif 'diabetes' in user_input:
+            print("Diabetes is a chronic condition characterized by high blood sugar levels. Type 1 diabetes is an autoimmune condition, while type 2 diabetes is often linked to lifestyle factors. Management involves blood sugar monitoring, medication, and lifestyle changes.")
+        elif 'jaundice' in user_input:
+            print("Jaundice is a condition characterized by yellowing of the skin and eyes due to elevated levels of bilirubin in the blood. Causes include liver disease, hepatitis, and certain medications. Treatment depends on the underlying cause and may involve medication or lifestyle changes.")
+        elif 'exit' in user_input or 'thank you' in user_input or 'quit' in user_input:
+            print("Most welcome! Goodbye! Take care of your health!")
+            break
+        else:
+            print("I'm sorry, I didn't understand that. Please ask for a health tip, suggest a fungal solution, or type 'exit' to end.")
+
+# Entry point of the program
+if __name__ == "__main__":
+    main()
+
+
+
+
